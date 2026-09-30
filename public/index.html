@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Webtor — Stream & Download Torrents in Browser</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <!-- Header / Navigation -->
+  <header class="navbar">
+    <div class="logo">
+      <a href="/">web<span class="highlight">tor</span></a>
+    </div>
+    <nav class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+  </header>
+
+  <!-- Hero Section -->
+  <main class="container">
+    <section class="hero">
+      <div class="badge">Open-source · No install needed</div>
+      <h1 class="hero-title">
+        Stream & download<br>
+        <span class="gradient-text">torrents in your browser</span>
+      </h1>
+      <p class="hero-subtitle">
+        Paste a magnet link or upload a .torrent file to start watching or downloading instantly — a free web torrent player and online magnet downloader.
+      </p>
+
+      <!-- Input & Upload Box -->
+      <div class="input-card">
+        <form id="magnet-form" class="search-box">
+          <input type="text" id="magnet-input" placeholder="Magnet link or infohash..." required>
+          <button type="submit" id="search-btn">Search</button>
+        </form>
+
+        <div class="divider">OR</div>
+
+        <div id="dropzone" class="dropzone">
+          <p><span class="highlight">Drop torrent file here</span> or click to browse</p>
+          <span class="badge-sm">No size limit</span>
+          <input type="file" id="file-input" accept=".torrent" style="display: none;">
+        </div>
+
+        <div class="demo-actions">
+          <button type="button" class="btn-ghost" id="demo-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Try the demo
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Player & Torrent View Section (Hidden initially) -->
+    <section id="media-section" class="media-section hidden">
+      <div class="media-card">
+        <div class="media-header">
+          <h2 id="torrent-title">Torrent Name</h2>
+          <div id="torrent-stats" class="torrent-stats">
+            <span id="stat-peers">Peers: 0</span>
+            <span id="stat-speed">Speed: 0 KB/s</span>
+            <span id="stat-progress">Progress: 0%</span>
+          </div>
+        </div>
+
+        <!-- Video Player -->
+        <div id="player-container" class="player-container hidden">
+          <video id="video-player" controls preload="metadata" style="width: 100%; max-height: 500px;"></video>
+          <div class="player-actions">
+            <button id="copy-stream-btn" class="btn-primary">Copy Video Stream Link</button>
+            <button id="share-btn" class="btn-secondary">Share File Link</button>
+          </div>
+        </div>
+
+        <!-- File List -->
+        <div class="file-list-container">
+          <h3>Torrent Files</h3>
+          <ul id="file-list" class="file-list"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how" class="section">
+      <h2 class="section-title">How it works</h2>
+      <p class="section-subtitle">Three steps. That's it.</p>
+      <div class="grid-3">
+        <div class="card">
+          <div class="step-num">1</div>
+          <h3>Paste or upload</h3>
+          <p>Enter a magnet link, infohash, or drag-and-drop a .torrent file into the browser.</p>
+        </div>
+        <div class="card">
+          <div class="step-num">2</div>
+          <h3>Pick your file</h3>
+          <p>Browse the torrent contents and select the file you want to stream or download.</p>
+        </div>
+        <div class="card">
+          <div class="step-num">3</div>
+          <h3>Stream or download</h3>
+          <p>Watch video instantly in the built-in player, or grab a direct HTTP download link.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="section">
+      <h2 class="section-title">Features</h2>
+      <div class="grid-3">
+        <div class="card">
+          <h3>Direct Download Links</h3>
+          <p>Get a regular HTTP download link for any file inside the torrent. No VPN or client needed.</p>
+        </div>
+        <div class="card">
+          <h3>Instant Streaming</h3>
+          <p>Watch video and listen to audio directly in the browser without waiting for full download.</p>
+        </div>
+        <div class="card">
+          <h3>Shareable Links</h3>
+          <p>Generate shareable streaming or direct download links with one click.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="section">
+      <h2 class="section-title">Frequently Asked Questions</h2>
+      <div class="faq-list">
+        <details class="faq-item">
+          <summary>Is Webtor free to use?</summary>
+          <p>Yes, Webtor is completely free. You can stream and download torrents right in your browser.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Do I need a torrent client installed?</summary>
+          <p>No, you do not need qBittorrent, uTorrent or any desktop client. Everything is handled in your browser.</p>
+        </details>
+        <details class="faq-item">
+          <summary>What video formats are supported?</summary>
+          <p>Webtor supports MP4, WEBM, MKV, AVI, and other popular media formats.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <!-- Share Modal -->
+  <div id="share-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <h3>Share File Link</h3>
+      <p>Anyone with this link can stream or download this file directly:</p>
+      <div class="input-group">
+        <input type="text" id="share-url-input" readonly>
+        <button id="modal-copy-btn">Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>© 2026 Webtor — Stream & Download Torrents Online</p>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
