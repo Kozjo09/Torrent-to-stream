@@ -25,8 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentTorrent = null;
   let activeFileIndex = null;
   let statsInterval = null;
+  let clientWebTorrent = null;
 
   const DEMO_MAGNET = "magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel";
+
+  if (window.WebTorrent && WebTorrent.WEBRTC_SUPPORT) {
+    clientWebTorrent = new WebTorrent();
+  }
 
   // Check if URL path has /share/:infoHash/:fileIndex
   const pathParts = window.location.pathname.split('/').filter(Boolean);
@@ -114,7 +119,36 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.error) throw new Error(data.error);
         renderTorrent(data);
       })
-      .catch(err => alert('Error: ' + err.message));
+      .catch(err => {
+        if (clientWebTorrent) {
+          processMagnetClientSide(magnet);
+        } else {
+          alert('Error: ' + err.message);
+        }
+      });
+  }
+
+  function processMagnetClientSide(magnet) {
+    clientWebTorrent.add(magnet, (torrent) => {
+      const files = torrent.files.map((file, idx) => ({
+        index: idx,
+        name: file.name,
+        path: file.path,
+        length: file.length,
+        mimeType: 'video/mp4',
+        isStreamable: true,
+        _clientFile: file
+      }));
+
+      const data = {
+        infoHash: torrent.infoHash,
+        name: torrent.name,
+        length: torrent.length,
+        files
+      };
+
+      renderTorrent(data);
+    });
   }
 
   function uploadFile(file) {
@@ -131,7 +165,29 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.error) throw new Error(data.error);
         renderTorrent(data);
       })
-      .catch(err => alert('Error: ' + err.message));
+      .catch(err => {
+        if (clientWebTorrent) {
+          clientWebTorrent.add(file, (torrent) => {
+            const files = torrent.files.map((f, idx) => ({
+              index: idx,
+              name: f.name,
+              path: f.path,
+              length: f.length,
+              mimeType: 'video/mp4',
+              isStreamable: true,
+              _clientFile: f
+            }));
+            renderTorrent({
+              infoHash: torrent.infoHash,
+              name: torrent.name,
+              length: torrent.length,
+              files
+            });
+          });
+        } else {
+          alert('Error: ' + err.message);
+        }
+      });
   }
 
   function fetchTorrentByInfoHash(infoHash, targetFileIdx = 0) {
@@ -142,7 +198,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.error) throw new Error(data.error);
         renderTorrent(data, targetFileIdx);
       })
-      .catch(err => alert('Error fetching torrent: ' + err.message));
+      .catch(err => {
+        if (clientWebTorrent) {
+          processMagnetClientSide(`magnet:?xt=urn:btih:${infoHash}`);
+        } else {
+          alert('Error fetching torrent: ' + err.message);
+        }
+      });
   }
 
   function renderTorrent(data, targetFileIdx = null) {
@@ -150,11 +212,9 @@ document.addEventListener('DOMContentLoaded', () => {
     torrentTitle.textContent = data.name || 'Unnamed Torrent';
     mediaSection.classList.remove('hidden');
 
-    // Poll status for stats
     if (statsInterval) clearInterval(statsInterval);
     statsInterval = setInterval(() => updateStats(data.infoHash), 2000);
 
-    // Render file list
     fileList.innerHTML = '';
     data.files.forEach((file, index) => {
       const li = document.createElement('li');
@@ -181,8 +241,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const downloadLink = document.createElement('a');
       downloadLink.className = 'btn-secondary btn-xs';
       downloadLink.textContent = 'Download';
-      downloadLink.href = `/api/download/${data.infoHash}/${index}`;
-      downloadLink.download = file.name;
+      if (file._clientFile) {
+        file._clientFile.getBlobURL((err, url) => {
+          if (!err) {
+            downloadLink.href = url;
+            downloadLink.download = file.name;
+          }
+        });
+      } else {
+        downloadLink.href = `/api/download/${data.infoHash}/${index}`;
+        downloadLink.download = file.name;
+      }
       actions.appendChild(downloadLink);
 
       const fileShareBtn = document.createElement('button');
@@ -199,7 +268,6 @@ document.addEventListener('DOMContentLoaded', () => {
       fileList.appendChild(li);
     });
 
-    // Auto select first streamable or target index
     if (targetFileIdx !== null && data.files[targetFileIdx]) {
       playFile(targetFileIdx, data.files[targetFileIdx]);
     } else {
@@ -214,10 +282,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function playFile(index, file) {
     activeFileIndex = index;
-    const streamUrl = `/api/stream/${currentTorrent.infoHash}/${index}`;
-    videoPlayer.src = streamUrl;
+    if (file._clientFile) {
+      file._clientFile.renderTo(videoPlayer, { autoplay: true });
+    } else {
+      const streamUrl = `/api/stream/${currentTorrent.infoHash}/${index}`;
+      videoPlayer.src = streamUrl;
+      videoPlayer.play().catch(() => {});
+    }
     playerContainer.classList.remove('hidden');
-    videoPlayer.play().catch(() => {});
   }
 
   function updateStats(infoHash) {

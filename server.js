@@ -3,6 +3,7 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const parseMagnet = require('./parse-magnet');
 
 let WebTorrent;
@@ -20,8 +21,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Set up storage for uploads
-const upload = multer({ dest: path.join(__dirname, 'uploads') });
+// Set up storage for uploads using os.tmpdir() for serverless compatibility (Vercel)
+const tmpDir = os.tmpdir();
+const upload = multer({ dest: path.join(tmpDir, 'webtor-uploads') });
 
 // Initialize WebTorrent Client
 let client;
@@ -93,7 +95,7 @@ function addTorrent(input) {
       }
     }
 
-    const options = { path: path.join(__dirname, 'downloads') };
+    const options = { path: path.join(tmpDir, 'webtor-downloads') };
     client.add(input, options, (torrent) => {
       torrent.on('error', (err) => {
         console.error('Torrent error:', err);
@@ -230,4 +232,8 @@ if (require.main === module) {
   });
 }
 
-module.exports = { app, client, addTorrent, getFileInfo };
+module.exports = app;
+module.exports.app = app;
+module.exports.client = client;
+module.exports.addTorrent = addTorrent;
+module.exports.getFileInfo = getFileInfo;
